@@ -1,0 +1,346 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"  // Local dev için SQLite, Production'da PostgreSQL (env'den)
+  url      = env("DATABASE_URL")
+}
+
+// Kullanıcılar ve Authentication
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          UserRole  @default(MEMBER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  memberId      String?   @unique
+  member        Member?   @relation(fields: [memberId], references: [id])
+  
+  activities    Activity[]
+  reports       Report[]
+}
+
+enum UserRole {
+  ADMIN
+  PRESIDENT
+  BOARD_MEMBER
+  MEMBER
+  GUEST
+}
+
+// Üyeler
+model Member {
+  id              String   @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String   @unique
+  phone           String?
+  company         String?
+  position        String?
+  sector          String?
+  membershipDate  DateTime @default(now())
+  status          MemberStatus @default(ACTIVE)
+  address         String?
+  city            String   @default("Denizli")
+  district        String?
+  birthDate       DateTime?
+  experience      Int?     // years of experience
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User?
+  participations  EventParticipant[]
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  RESIGNED
+}
+
+// Etkinlikler
+model Event {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  type          EventType
+  startDate     DateTime
+  endDate       DateTime?
+  location      String?
+  address       String?
+  city          String   @default("Denizli")
+  capacity      Int?
+  cost          Float    @default(0)
+  status        EventStatus @default(PLANNED)
+  imageUrl      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  participants  EventParticipant[]
+  feedbacks     EventFeedback[]
+}
+
+enum EventType {
+  CONFERENCE
+  SEMINAR
+  WORKSHOP
+  NETWORKING
+  TRAINING
+  SOCIAL_RESPONSIBILITY
+  MEETING
+  OTHER
+}
+
+enum EventStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+// Etkinlik Katılımcıları
+model EventParticipant {
+  id          String   @id @default(cuid())
+  eventId     String
+  memberId    String
+  status      ParticipationStatus @default(REGISTERED)
+  registeredAt DateTime @default(now())
+  attendedAt  DateTime?
+  
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  member      Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  
+  @@unique([eventId, memberId])
+}
+
+enum ParticipationStatus {
+  REGISTERED
+  ATTENDED
+  NO_SHOW
+  CANCELLED
+}
+
+// Etkinlik Geri Bildirimleri
+model EventFeedback {
+  id          String   @id @default(cuid())
+  eventId     String
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+  
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// Rakip STK Bilgileri
+model Competitor {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  shortName   String   @unique
+  website     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  digitalMetrics    DigitalMetric[]
+  socialMediaStats  SocialMediaStat[]
+  eventCounts       CompetitorEventCount[]
+}
+
+// Rakip STK Aylık Etkinlik Sayıları
+model CompetitorEventCount {
+  id            String   @id @default(cuid())
+  competitorId  String
+  month         String   // "Ocak 2024", "Şubat 2024"
+  eventCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@unique([competitorId, month])
+}
+
+// Dijital Varlık Metrikleri
+model DigitalMetric {
+  id            String   @id @default(cuid())
+  competitorId  String
+  date          DateTime @default(now())
+  seoScore      Float?
+  pageSpeed     Float?
+  mobileScore   Float?
+  contentScore  Float?
+  overallScore  Float?
+  
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+}
+
+// Sosyal Medya İstatistikleri
+model SocialMediaStat {
+  id            String   @id @default(cuid())
+  competitorId  String
+  platform      SocialPlatform
+  date          DateTime @default(now())
+  followers     Int      @default(0)
+  posts         Int      @default(0)
+  engagement    Float    @default(0) // engagement rate
+  reach         Int      @default(0)
+  likes         Int      @default(0)
+  comments      Int      @default(0)
+  shares        Int      @default(0)
+  
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+}
+
+enum SocialPlatform {
+  TWITTER
+  LINKEDIN
+  INSTAGRAM
+  FACEBOOK
+  YOUTUBE
+}
+
+// Stratejik Hedefler
+model Goal {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    GoalCategory
+  targetValue Float?
+  currentValue Float   @default(0)
+  unit        String?
+  priority    Priority @default(MEDIUM)
+  status      GoalStatus @default(IN_PROGRESS)
+  startDate   DateTime @default(now())
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  kpis        KPI[]
+}
+
+enum GoalCategory {
+  MEMBERSHIP
+  EVENTS
+  COMMUNICATION
+  DIGITAL
+  REGIONAL
+  FINANCIAL
+  OTHER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum GoalStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  ON_HOLD
+}
+
+// KPI (Key Performance Indicators)
+model KPI {
+  id          String   @id @default(cuid())
+  goalId      String?
+  name        String
+  description String?
+  targetValue Float
+  currentValue Float   @default(0)
+  unit        String
+  frequency   KPIFrequency
+  lastUpdated DateTime @default(now())
+  createdAt   DateTime @default(now())
+  
+  goal        Goal?    @relation(fields: [goalId], references: [id], onDelete: SetNull)
+}
+
+enum KPIFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+// Raporlar
+model Report {
+  id          String   @id @default(cuid())
+  title       String
+  type        ReportType
+  content     String   // JSON string
+  generatedBy String
+  generatedAt DateTime @default(now())
+  period      String?  // e.g., "2024-Q1", "January 2024"
+  
+  user        User     @relation(fields: [generatedBy], references: [id])
+}
+
+enum ReportType {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+// Aktivite Logları
+model Activity {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  entity      String?
+  entityId    String?
+  details     String?  // JSON string
+  createdAt   DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+// İletişim Kampanyaları
+model Campaign {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  type        CampaignType
+  status      CampaignStatus @default(DRAFT)
+  startDate   DateTime
+  endDate     DateTime?
+  budget      Float?
+  reach       Int      @default(0)
+  engagement  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum CampaignType {
+  SOCIAL_MEDIA
+  EMAIL
+  PRESS_RELEASE
+  NEWSLETTER
+  EVENT_PROMOTION
+  AWARENESS
+  OTHER
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}

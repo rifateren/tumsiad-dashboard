@@ -1,0 +1,17 @@
+// Production için PostgreSQL schema
+// Vercel deploy sırasında bu kullanılacak
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Tüm model'ler aynı (schema.prisma ile aynı)
+// Sadece provider farklı
+
+// NOT: Deployment'ta bu dosyayı kullanmak için:
+// vercel.json'da build command'de belirtin
