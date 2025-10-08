@@ -3,7 +3,4 @@
   "installCommand": "npm install",
   "framework": "nextjs",
   "regions": ["fra1"],
-  "env": {
-    "DATABASE_URL": "@postgres_url"
-  }
 }
