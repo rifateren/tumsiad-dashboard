@@ -24,8 +24,7 @@ async function main() {
       name: 'TÜMSİAD',
       shortName: 'TÜMSİAD',
       website: 'https://www.tumsiad.org',
-      memberCount: 150,
-      foundedYear: 1971,
+      description: 'Tüm Sanayici ve İş Adamları Derneği - 150 üye',
     }
   })
 
@@ -33,8 +32,10 @@ async function main() {
   await prisma.digitalMetric.create({
     data: {
       competitorId: tumsiad.id,
-      metricType: 'SEO',
-      value: 70,
+      seoScore: 70,
+      pageSpeed: 75,
+      mobileScore: 68,
+      contentScore: 72,
       overallScore: 70,
       date: new Date(),
     }
@@ -71,16 +72,17 @@ async function main() {
       name: 'MÜSİAD',
       shortName: 'MÜSİAD',
       website: 'https://www.musiad.org.tr',
-      memberCount: 12000,
-      foundedYear: 1990,
+      description: 'Müstakil Sanayici ve İşadamları Derneği - 12000 üye',
     }
   })
 
   await prisma.digitalMetric.create({
     data: {
       competitorId: musiad.id,
-      metricType: 'SEO',
-      value: 81,
+      seoScore: 81,
+      pageSpeed: 85,
+      mobileScore: 80,
+      contentScore: 82,
       overallScore: 81,
       date: new Date(),
     }
@@ -116,16 +118,17 @@ async function main() {
       name: 'ASKON',
       shortName: 'ASKON',
       website: 'https://www.askon.org.tr',
-      memberCount: 8000,
-      foundedYear: 2003,
+      description: 'Anadolu Aslanları İşadamları Derneği - 8000 üye',
     }
   })
 
   await prisma.digitalMetric.create({
     data: {
       competitorId: askon.id,
-      metricType: 'SEO',
-      value: 75,
+      seoScore: 75,
+      pageSpeed: 78,
+      mobileScore: 73,
+      contentScore: 76,
       overallScore: 75,
       date: new Date(),
     }
