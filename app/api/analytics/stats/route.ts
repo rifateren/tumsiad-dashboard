@@ -35,6 +35,12 @@ export async function GET() {
       : 0
 
     const stats = {
+      totalMembers,
+      activeMembers,
+      totalEvents,
+      upcomingEvents,
+      memberGrowth: 12.5, // This would be calculated from historical data
+      eventAttendance: 85, // This would be calculated from event participants
       members: {
         total: totalMembers,
         active: activeMembers,
