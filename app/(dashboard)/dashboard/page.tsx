@@ -164,28 +164,28 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Toplam Üye"
-          value={stats.totalMembers.toString()}
-          change={stats.memberGrowth}
+          value={(stats.totalMembers || 0).toString()}
+          change={stats.memberGrowth || 0}
           icon={Users}
-          description={`Bu yıl +${Math.floor(stats.totalMembers * 0.15)} yeni üye`}
+          description={`Bu yıl +${Math.floor((stats.totalMembers || 0) * 0.15)} yeni üye`}
         />
         <StatCard
           title="Aktif Üye"
-          value={stats.activeMembers.toString()}
+          value={(stats.activeMembers || 0).toString()}
           change={5.1}
           icon={TrendingUp}
           description={`Toplam üyelerin %${stats.totalMembers > 0 ? Math.round((stats.activeMembers / stats.totalMembers) * 100) : 0}'ü`}
         />
         <StatCard
           title="Bu Yıl Etkinlik"
-          value={stats.thisYearEvents.toString()}
+          value={(stats.thisYearEvents || 0).toString()}
           change={25}
           icon={Calendar}
           description="Bu yıl gerçekleşen"
         />
         <StatCard
           title="Ortalama Katılım"
-          value={stats.avgAttendance.toString()}
+          value={(stats.avgAttendance || 0).toString()}
           change={12}
           icon={Award}
           description="Etkinlik başına"
