@@ -9,7 +9,10 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(members)
+    return NextResponse.json({ 
+      members,
+      total: members.length 
+    })
   } catch (error) {
     console.error('Error fetching members:', error)
     return NextResponse.json(

@@ -16,7 +16,10 @@ export async function GET() {
       },
     })
 
-    return NextResponse.json(events)
+    return NextResponse.json({ 
+      events,
+      total: events.length 
+    })
   } catch (error) {
     console.error('Error fetching events:', error)
     return NextResponse.json(
