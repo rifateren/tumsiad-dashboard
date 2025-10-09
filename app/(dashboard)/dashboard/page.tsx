@@ -100,24 +100,36 @@ export default function DashboardPage() {
         avgAttendance: Number(statsData?.eventAttendance) || 0,
       })
 
-      // Transform data for charts
-      setMemberGrowthData(memberStatsData?.monthlyGrowth?.map((item: any) => ({
-        month: new Date(item.month).toLocaleDateString('tr-TR', { month: 'short' }),
-        uye: item.count
-      })) || [])
+      // Transform data for charts with extra safety
+      try {
+        setMemberGrowthData(memberStatsData?.monthlyGrowth?.map((item: any) => ({
+          month: new Date(item.month).toLocaleDateString('tr-TR', { month: 'short' }),
+          uye: item.count
+        })) || [])
+      } catch (e) {
+        setMemberGrowthData([])
+      }
 
-      setSectorData(memberStatsData?.sectorDistribution?.map((item: any) => ({
-        sector: item.sector,
-        count: item.count
-      })) || [])
+      try {
+        setSectorData(memberStatsData?.sectorDistribution?.map((item: any) => ({
+          sector: item.sector,
+          count: item.count
+        })) || [])
+      } catch (e) {
+        setSectorData([])
+      }
 
-      setRecentEvents(eventsData?.events?.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        date: new Date(event.startDate).toLocaleDateString('tr-TR'),
-        attendees: Math.floor(Math.random() * 50) + 20,
-        satisfaction: (Math.random() * 1 + 4).toFixed(1),
-      })) || [])
+      try {
+        setRecentEvents(eventsData?.events?.map((event: any) => ({
+          id: event.id,
+          title: event.title,
+          date: new Date(event.startDate).toLocaleDateString('tr-TR'),
+          attendees: Math.floor(Math.random() * 50) + 20,
+          satisfaction: (Math.random() * 1 + 4).toFixed(1),
+        })) || [])
+      } catch (e) {
+        setRecentEvents([])
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
       toast.error('Dashboard verileri yüklenemedi')
