@@ -54,7 +54,14 @@ const recentEvents = [
 ]
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<{
+    totalMembers: number
+    activeMembers: number
+    totalEvents: number
+    thisYearEvents: number
+    memberGrowth: number
+    avgAttendance: number
+  }>({
     totalMembers: 0,
     activeMembers: 0,
     totalEvents: 0,
@@ -72,48 +79,45 @@ export default function DashboardPage() {
   const fetchDashboardData = async () => {
     try {
       const [statsResponse, memberStatsResponse, eventStatsResponse, eventsResponse] = await Promise.all([
-        fetch('/api/analytics/stats'),
-        fetch('/api/analytics/member-stats'),
-        fetch('/api/analytics/event-stats'),
-        fetch('/api/events?limit=3')
+        fetch('/api/analytics/stats').catch(() => null),
+        fetch('/api/analytics/member-stats').catch(() => null),
+        fetch('/api/analytics/event-stats').catch(() => null),
+        fetch('/api/events?limit=3').catch(() => null)
       ])
 
-      if (statsResponse.ok && memberStatsResponse.ok && eventStatsResponse.ok && eventsResponse.ok) {
-        const [statsData, memberStatsData, eventStatsData, eventsData] = await Promise.all([
-          statsResponse.json(),
-          memberStatsResponse.json(),
-          eventStatsResponse.json(),
-          eventsResponse.json()
-        ])
+      // Parse responses safely
+      const statsData = statsResponse?.ok ? await statsResponse.json().catch(() => ({})) : {}
+      const memberStatsData = memberStatsResponse?.ok ? await memberStatsResponse.json().catch(() => ({})) : {}
+      const eventStatsData = eventStatsResponse?.ok ? await eventStatsResponse.json().catch(() => ({})) : {}
+      const eventsData = eventsResponse?.ok ? await eventsResponse.json().catch(() => ({})) : {}
 
-        setStats({
-          totalMembers: statsData.totalMembers,
-          activeMembers: statsData.activeMembers,
-          totalEvents: statsData.totalEvents,
-          thisYearEvents: eventStatsData.thisYearEvents,
-          memberGrowth: statsData.memberGrowth,
-          avgAttendance: statsData.eventAttendance,
-        })
+      setStats({
+        totalMembers: Number(statsData?.totalMembers) || 0,
+        activeMembers: Number(statsData?.activeMembers) || 0,
+        totalEvents: Number(statsData?.totalEvents) || 0,
+        thisYearEvents: Number(eventStatsData?.thisYearEvents) || 0,
+        memberGrowth: Number(statsData?.memberGrowth) || 0,
+        avgAttendance: Number(statsData?.eventAttendance) || 0,
+      })
 
-        // Transform data for charts
-        setMemberGrowthData(memberStatsData.monthlyGrowth?.map((item: any) => ({
-          month: new Date(item.month).toLocaleDateString('tr-TR', { month: 'short' }),
-          uye: item.count
-        })) || [])
+      // Transform data for charts
+      setMemberGrowthData(memberStatsData?.monthlyGrowth?.map((item: any) => ({
+        month: new Date(item.month).toLocaleDateString('tr-TR', { month: 'short' }),
+        uye: item.count
+      })) || [])
 
-        setSectorData(memberStatsData.sectorDistribution?.map((item: any) => ({
-          sector: item.sector,
-          count: item.count
-        })) || [])
+      setSectorData(memberStatsData?.sectorDistribution?.map((item: any) => ({
+        sector: item.sector,
+        count: item.count
+      })) || [])
 
-        setRecentEvents(eventsData.events?.map((event: any) => ({
-          id: event.id,
-          title: event.title,
-          date: new Date(event.startDate).toLocaleDateString('tr-TR'),
-          attendees: Math.floor(Math.random() * 50) + 20, // Mock data for now
-          satisfaction: (Math.random() * 1 + 4).toFixed(1),
-        })) || [])
-      }
+      setRecentEvents(eventsData?.events?.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        date: new Date(event.startDate).toLocaleDateString('tr-TR'),
+        attendees: Math.floor(Math.random() * 50) + 20,
+        satisfaction: (Math.random() * 1 + 4).toFixed(1),
+      })) || [])
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
       toast.error('Dashboard verileri yüklenemedi')
