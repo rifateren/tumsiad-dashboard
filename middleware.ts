@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { withRateLimit, getSecurityHeaders, getCORSHeaders, logSecurityEvent } from './lib/security'
+import { apiRateLimiter, authRateLimiter } from './lib/rate-limiter'
 
 /**
  * Middleware - Request/Response işleme
@@ -7,17 +9,61 @@ import type { NextRequest } from 'next/server'
  * Authentication eklendiğinde burası güncellenecek
  */
 export function middleware(request: NextRequest) {
-  // CORS headers
   const response = NextResponse.next()
   
-  response.headers.set('Access-Control-Allow-Origin', '*')
-  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  // Add security headers
+  Object.entries(getSecurityHeaders()).forEach(([key, value]) => {
+    response.headers.set(key, value)
+  })
+  
+  // Add CORS headers
+  Object.entries(getCORSHeaders()).forEach(([key, value]) => {
+    response.headers.set(key, value)
+  })
 
-  // Security headers
-  response.headers.set('X-Frame-Options', 'DENY')
-  response.headers.set('X-Content-Type-Options', 'nosniff')
-  response.headers.set('Referrer-Policy', 'origin-when-cross-origin')
+  // Rate limiting for API routes
+  if (request.nextUrl.pathname.startsWith('/api/')) {
+    const endpoint = request.nextUrl.pathname
+    let limiter = apiRateLimiter
+    
+    // Use stricter rate limiting for auth endpoints
+    if (endpoint.includes('/auth/') || endpoint.includes('/login')) {
+      limiter = authRateLimiter
+    }
+    
+    const rateLimitResult = withRateLimit(request, limiter, endpoint)
+    
+    if (!rateLimitResult.allowed) {
+      logSecurityEvent('RATE_LIMIT_EXCEEDED', {
+        endpoint,
+        remaining: rateLimitResult.remaining,
+        resetTime: rateLimitResult.resetTime
+      }, request)
+      
+      return new NextResponse('Rate limit exceeded', { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': '100',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimitResult.resetTime.toString(),
+          'Retry-After': Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString()
+        }
+      })
+    }
+    
+    // Add rate limit headers
+    response.headers.set('X-RateLimit-Limit', '100')
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString())
+    response.headers.set('X-RateLimit-Reset', rateLimitResult.resetTime.toString())
+  }
+
+  // Handle preflight requests
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, { 
+      status: 200,
+      headers: response.headers
+    })
+  }
   
   return response
 }

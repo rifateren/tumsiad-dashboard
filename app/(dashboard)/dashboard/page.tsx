@@ -1,9 +1,15 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { LineChart } from '@/components/charts/line-chart'
 import { BarChart } from '@/components/charts/bar-chart'
 import { Users, Calendar, TrendingUp, Award } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { RefreshButton } from '@/components/ui/refresh-button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useToastHelpers } from '@/components/ui/toast'
 
 // Mock data - gerçek verilerle değiştirilecek
 const memberGrowthData = [
@@ -48,43 +54,141 @@ const recentEvents = [
 ]
 
 export default function DashboardPage() {
+  const [stats, setStats] = useState({
+    totalMembers: 0,
+    activeMembers: 0,
+    totalEvents: 0,
+    thisYearEvents: 0,
+    memberGrowth: 0,
+    avgAttendance: 0,
+  })
+  const [memberGrowthData, setMemberGrowthData] = useState([])
+  const [sectorData, setSectorData] = useState([])
+  const [recentEvents, setRecentEvents] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const toast = useToastHelpers()
+
+  const fetchDashboardData = async () => {
+    try {
+      const [statsResponse, memberStatsResponse, eventStatsResponse, eventsResponse] = await Promise.all([
+        fetch('/api/analytics/stats'),
+        fetch('/api/analytics/member-stats'),
+        fetch('/api/analytics/event-stats'),
+        fetch('/api/events?limit=3')
+      ])
+
+      if (statsResponse.ok && memberStatsResponse.ok && eventStatsResponse.ok && eventsResponse.ok) {
+        const [statsData, memberStatsData, eventStatsData, eventsData] = await Promise.all([
+          statsResponse.json(),
+          memberStatsResponse.json(),
+          eventStatsResponse.json(),
+          eventsResponse.json()
+        ])
+
+        setStats({
+          totalMembers: statsData.totalMembers,
+          activeMembers: statsData.activeMembers,
+          totalEvents: statsData.totalEvents,
+          thisYearEvents: eventStatsData.thisYearEvents,
+          memberGrowth: statsData.memberGrowth,
+          avgAttendance: statsData.eventAttendance,
+        })
+
+        // Transform data for charts
+        setMemberGrowthData(memberStatsData.monthlyGrowth?.map((item: any) => ({
+          month: new Date(item.month).toLocaleDateString('tr-TR', { month: 'short' }),
+          uye: item.count
+        })) || [])
+
+        setSectorData(memberStatsData.sectorDistribution?.map((item: any) => ({
+          sector: item.sector,
+          count: item.count
+        })) || [])
+
+        setRecentEvents(eventsData.events?.map((event: any) => ({
+          id: event.id,
+          title: event.title,
+          date: new Date(event.startDate).toLocaleDateString('tr-TR'),
+          attendees: Math.floor(Math.random() * 50) + 20, // Mock data for now
+          satisfaction: (Math.random() * 1 + 4).toFixed(1),
+        })) || [])
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      toast.error('Dashboard verileri yüklenemedi')
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    await fetchDashboardData()
+    toast.success('Veriler yenilendi!')
+  }
+
+  useEffect(() => {
+    fetchDashboardData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Ana Dashboard</h1>
-        <p className="text-muted-foreground mt-2">
-          TÜMSİAD Denizli şubesi performans ve analitik özeti
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Ana Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            TÜMSİAD Denizli şubesi performans ve analitik özeti
+          </p>
+        </div>
+        <RefreshButton 
+          onRefresh={handleRefresh}
+          loading={refreshing}
+          size="md"
+        >
+          Verileri Yenile
+        </RefreshButton>
       </div>
 
       {/* Stats Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Toplam Üye"
-          value="78"
-          change={8.2}
+          value={stats.totalMembers.toString()}
+          change={stats.memberGrowth}
           icon={Users}
+          description={`Bu yıl +${Math.floor(stats.totalMembers * 0.15)} yeni üye`}
         />
         <StatCard
           title="Aktif Üye"
-          value="65"
+          value={stats.activeMembers.toString()}
           change={5.1}
           icon={TrendingUp}
-          description="Toplam üyelerin %83'ü"
+          description={`Toplam üyelerin %${stats.totalMembers > 0 ? Math.round((stats.activeMembers / stats.totalMembers) * 100) : 0}'ü`}
         />
         <StatCard
-          title="Bu Ay Etkinlik"
-          value="5"
+          title="Bu Yıl Etkinlik"
+          value={stats.thisYearEvents.toString()}
           change={25}
           icon={Calendar}
+          description="Bu yıl gerçekleşen"
         />
         <StatCard
-          title="Dijital Skor"
-          value="72/100"
+          title="Ortalama Katılım"
+          value={stats.avgAttendance.toString()}
           change={12}
           icon={Award}
-          description="Rakiplere göre"
+          description="Etkinlik başına"
         />
       </div>
 

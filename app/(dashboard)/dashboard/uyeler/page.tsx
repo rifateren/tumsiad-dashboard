@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,9 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { LineChart } from '@/components/charts/line-chart'
 import { BarChart } from '@/components/charts/bar-chart'
 import { StatCard } from '@/components/dashboard/stat-card'
-import { Users, TrendingUp, UserPlus, Activity, Search, Filter } from 'lucide-react'
+import { Users, TrendingUp, UserPlus, Activity, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { MemberForm } from '@/components/forms/member-form'
+import { MemberEditForm } from '@/components/forms/member-edit-form'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useToastHelpers } from '@/components/ui/toast'
 
 // Mock data
 const memberStats = {
@@ -87,13 +91,123 @@ const recentMembers = [
   },
 ]
 
+interface Member {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  company?: string
+  position?: string
+  sector?: string
+  district?: string
+  address?: string
+  experience?: number
+  status: string
+  membershipDate: string
+  createdAt: string
+}
+
 export default function MembersPage() {
+  const [members, setMembers] = useState<Member[]>([])
+  const [memberStats, setMemberStats] = useState({
+    total: 0,
+    active: 0,
+    inactive: 0,
+    newThisMonth: 0,
+    growthRate: 0,
+    activeRate: 0,
+  })
+  const [loading, setLoading] = useState(true)
   const [memberFormOpen, setMemberFormOpen] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [memberEditFormOpen, setMemberEditFormOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const toast = useToastHelpers()
+
+  // Fetch members data
+  const fetchMembers = async () => {
+    try {
+      const [membersResponse, statsResponse] = await Promise.all([
+        fetch('/api/members'),
+        fetch('/api/analytics/member-stats')
+      ])
+
+      if (membersResponse.ok && statsResponse.ok) {
+        const [membersData, statsData] = await Promise.all([
+          membersResponse.json(),
+          statsResponse.json()
+        ])
+
+        setMembers(membersData.members || [])
+        setMemberStats({
+          total: statsData.totalMembers,
+          active: statsData.activeMembers,
+          inactive: statsData.inactiveMembers,
+          newThisMonth: statsData.monthlyGrowth?.slice(-1)[0]?.count || 0,
+          growthRate: 12.5, // This would be calculated from historical data
+          activeRate: statsData.totalMembers > 0 ? Math.round((statsData.activeMembers / statsData.totalMembers) * 100) : 0,
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching members:', error)
+      toast.error('Üye verileri yüklenemedi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchMembers()
+  }, [])
 
   const handleMemberAdded = () => {
-    setRefreshKey(prev => prev + 1)
-    alert('Üye başarıyla eklendi!')
+    fetchMembers()
+    toast.success('Üye başarıyla eklendi!')
+  }
+
+  const handleMemberUpdated = () => {
+    fetchMembers()
+    toast.success('Üye başarıyla güncellendi!')
+  }
+
+  const handleDeleteMember = async () => {
+    if (!selectedMember) return
+
+    try {
+      const response = await fetch(`/api/members/${selectedMember.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        fetchMembers()
+        toast.success('Üye başarıyla silindi!')
+      } else {
+        throw new Error('Üye silinirken bir hata oluştu')
+      }
+    } catch (error) {
+      console.error('Error deleting member:', error)
+      toast.error('Üye silinemedi')
+    } finally {
+      setDeleteDialogOpen(false)
+      setSelectedMember(null)
+    }
+  }
+
+  const filteredMembers = members.filter(member =>
+    `${member.firstName} ${member.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    member.sector?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
   }
 
   return (
@@ -116,6 +230,24 @@ export default function MembersPage() {
         open={memberFormOpen} 
         onOpenChange={setMemberFormOpen}
         onSuccess={handleMemberAdded}
+      />
+
+      <MemberEditForm 
+        open={memberEditFormOpen} 
+        onOpenChange={setMemberEditFormOpen}
+        member={selectedMember}
+        onSuccess={handleMemberUpdated}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Üyeyi Sil"
+        description={`${selectedMember?.firstName} ${selectedMember?.lastName} adlı üyeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
+        confirmText="Sil"
+        cancelText="İptal"
+        variant="destructive"
+        onConfirm={handleDeleteMember}
       />
 
       {/* Stats Grid */}
@@ -208,7 +340,12 @@ export default function MembersPage() {
             <div className="flex gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Ara..." className="pl-9 w-64" />
+                <Input 
+                  placeholder="Üye ara..." 
+                  className="pl-9 w-64" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </div>
               <Button variant="outline" size="icon">
                 <Filter className="h-4 w-4" />
@@ -221,37 +358,60 @@ export default function MembersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Üye Adı</TableHead>
+                <TableHead>E-posta</TableHead>
                 <TableHead>Şirket</TableHead>
                 <TableHead>Sektör</TableHead>
-                <TableHead>Katılım Tarihi</TableHead>
-                <TableHead>Katılım Oranı</TableHead>
+                <TableHead>Üyelik Tarihi</TableHead>
                 <TableHead>Durum</TableHead>
+                <TableHead>İşlemler</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentMembers.map((member) => (
+              {filteredMembers.map((member) => (
                 <TableRow key={member.id}>
-                  <TableCell className="font-medium">{member.name}</TableCell>
-                  <TableCell>{member.company}</TableCell>
-                  <TableCell>{member.sector}</TableCell>
-                  <TableCell>{member.joinDate}</TableCell>
+                  <TableCell className="font-medium">
+                    {member.firstName} {member.lastName}
+                  </TableCell>
+                  <TableCell>{member.email}</TableCell>
+                  <TableCell>{member.company || '-'}</TableCell>
+                  <TableCell>{member.sector || '-'}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary"
-                          style={{ width: `${member.attendance}%` }}
-                        />
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {member.attendance}%
-                      </span>
-                    </div>
+                    {new Date(member.membershipDate).toLocaleDateString('tr-TR')}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
-                      {member.status === 'active' ? 'Aktif' : 'Pasif'}
+                    <Badge variant={
+                      member.status === 'ACTIVE' ? 'default' : 
+                      member.status === 'INACTIVE' ? 'secondary' :
+                      member.status === 'SUSPENDED' ? 'destructive' : 'outline'
+                    }>
+                      {member.status === 'ACTIVE' ? 'Aktif' : 
+                       member.status === 'INACTIVE' ? 'Pasif' :
+                       member.status === 'SUSPENDED' ? 'Askıda' : 'İstifa'}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedMember(member)
+                          setMemberEditFormOpen(true)
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedMember(member)
+                          setDeleteDialogOpen(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select } from '@/components/ui/select'
 import {
   Dialog,
   DialogContent,
@@ -16,9 +15,25 @@ import { memberSchema, validateFormData } from '@/lib/validation'
 import { useToastHelpers } from '@/components/ui/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
-interface MemberFormProps {
+interface Member {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  phone?: string
+  company?: string
+  position?: string
+  sector?: string
+  district?: string
+  address?: string
+  experience?: number
+  status: string
+}
+
+interface MemberEditFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  member: Member | null
   onSuccess?: () => void
 }
 
@@ -55,7 +70,7 @@ const districts = [
   'Tavas',
 ]
 
-export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
+export function MemberEditForm({ open, onOpenChange, member, onSuccess }: MemberEditFormProps) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const toast = useToastHelpers()
@@ -70,10 +85,32 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
     district: 'Merkez',
     address: '',
     experience: '',
+    status: 'ACTIVE',
   })
+
+  // Form'u member verisiyle doldur
+  useEffect(() => {
+    if (member) {
+      setFormData({
+        firstName: member.firstName || '',
+        lastName: member.lastName || '',
+        email: member.email || '',
+        phone: member.phone || '',
+        company: member.company || '',
+        position: member.position || '',
+        sector: member.sector || '',
+        district: member.district || 'Merkez',
+        address: member.address || '',
+        experience: member.experience?.toString() || '',
+        status: member.status || 'ACTIVE',
+      })
+    }
+  }, [member])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!member) return
+    
     setLoading(true)
     setErrors({})
 
@@ -92,56 +129,39 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
     }
 
     try {
-      const response = await fetch('/api/members', {
-        method: 'POST',
+      const response = await fetch(`/api/members/${member.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...validation.data,
-          status: 'ACTIVE',
-          membershipDate: new Date().toISOString(),
-        }),
+        body: JSON.stringify(validation.data),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || 'Üye eklenirken bir hata oluştu')
+        throw new Error(errorData.error || 'Üye güncellenirken bir hata oluştu')
       }
 
-      // Form'u temizle
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        company: '',
-        position: '',
-        sector: '',
-        district: 'Merkez',
-        address: '',
-        experience: '',
-      })
-
-      // Success callback
-      toast.success('Üye başarıyla eklendi!')
+      toast.success('Üye başarıyla güncellendi!')
       onSuccess?.()
       onOpenChange(false)
     } catch (error) {
-      console.error('Error creating member:', error)
-      toast.error(error instanceof Error ? error.message : 'Üye eklenirken bir hata oluştu')
+      console.error('Error updating member:', error)
+      toast.error(error instanceof Error ? error.message : 'Üye güncellenirken bir hata oluştu')
     } finally {
       setLoading(false)
     }
   }
 
+  if (!member) return null
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Yeni Üye Ekle</DialogTitle>
+          <DialogTitle>Üye Düzenle</DialogTitle>
           <DialogDescription>
-            Yeni üye bilgilerini girin. Zorunlu alanları doldurun.
+            {member.firstName} {member.lastName} bilgilerini düzenleyin.
           </DialogDescription>
         </DialogHeader>
 
@@ -175,8 +195,12 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
                 onChange={(e) =>
                   setFormData({ ...formData, lastName: e.target.value })
                 }
+                className={errors.lastName ? 'border-red-500' : ''}
                 required
               />
+              {errors.lastName && (
+                <p className="text-sm text-red-500">{errors.lastName}</p>
+              )}
             </div>
           </div>
 
@@ -191,8 +215,12 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
+              className={errors.email ? 'border-red-500' : ''}
               required
             />
+            {errors.email && (
+              <p className="text-sm text-red-500">{errors.email}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -205,7 +233,11 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
               onChange={(e) =>
                 setFormData({ ...formData, phone: e.target.value })
               }
+              className={errors.phone ? 'border-red-500' : ''}
             />
+            {errors.phone && (
+              <p className="text-sm text-red-500">{errors.phone}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -299,6 +331,23 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
             </div>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="status">Durum</Label>
+            <select
+              id="status"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={formData.status}
+              onChange={(e) =>
+                setFormData({ ...formData, status: e.target.value })
+              }
+            >
+              <option value="ACTIVE">Aktif</option>
+              <option value="INACTIVE">Pasif</option>
+              <option value="SUSPENDED">Askıda</option>
+              <option value="RESIGNED">İstifa Etmiş</option>
+            </select>
+          </div>
+
           <div className="flex justify-end gap-2 pt-4">
             <Button
               type="button"
@@ -312,10 +361,10 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
               {loading ? (
                 <>
                   <LoadingSpinner size="sm" className="mr-2" />
-                  Kaydediliyor...
+                  Güncelleniyor...
                 </>
               ) : (
-                'Üye Ekle'
+                'Güncelle'
               )}
             </Button>
           </div>

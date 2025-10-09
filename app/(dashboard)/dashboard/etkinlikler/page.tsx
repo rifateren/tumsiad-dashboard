@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -8,8 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { BarChart } from '@/components/charts/bar-chart'
 import { LineChart } from '@/components/charts/line-chart'
-import { Calendar, Users, TrendingUp, Award, Clock, MapPin, Plus } from 'lucide-react'
+import { Calendar, Users, TrendingUp, Award, Clock, MapPin, Plus, Edit, Trash2, Search } from 'lucide-react'
 import { EventForm } from '@/components/forms/event-form'
+import { EventEditForm } from '@/components/forms/event-edit-form'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { useToastHelpers } from '@/components/ui/toast'
+import { Input } from '@/components/ui/input'
 
 // Mock data
 const eventStats = {
@@ -103,13 +108,132 @@ const recentEvents = [
   },
 ]
 
+interface Event {
+  id: string
+  title: string
+  description?: string
+  type: string
+  startDate: string
+  endDate?: string
+  location?: string
+  address?: string
+  city: string
+  capacity?: number
+  cost?: number
+  status: string
+  createdAt: string
+}
+
 export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>([])
+  const [eventStats, setEventStats] = useState({
+    total: 0,
+    thisMonth: 0,
+    upcoming: 0,
+    avgAttendance: 0,
+    satisfaction: 0,
+  })
+  const [loading, setLoading] = useState(true)
   const [eventFormOpen, setEventFormOpen] = useState(false)
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [eventEditFormOpen, setEventEditFormOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [activeTab, setActiveTab] = useState('upcoming')
+  const toast = useToastHelpers()
+
+  // Fetch events data
+  const fetchEvents = async () => {
+    try {
+      const [eventsResponse, statsResponse] = await Promise.all([
+        fetch('/api/events'),
+        fetch('/api/analytics/event-stats')
+      ])
+
+      if (eventsResponse.ok && statsResponse.ok) {
+        const [eventsData, statsData] = await Promise.all([
+          eventsResponse.json(),
+          statsResponse.json()
+        ])
+
+        setEvents(eventsData.events || [])
+        setEventStats({
+          total: statsData.totalEvents,
+          thisMonth: statsData.thisYearEvents,
+          upcoming: 0, // This would be calculated from events
+          avgAttendance: statsData.avgParticipantsPerEvent,
+          satisfaction: 4.3, // This would come from feedback data
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error)
+      toast.error('Etkinlik verileri yüklenemedi')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchEvents()
+  }, [])
 
   const handleEventAdded = () => {
-    setRefreshKey(prev => prev + 1)
-    alert('Etkinlik başarıyla eklendi!')
+    fetchEvents()
+    toast.success('Etkinlik başarıyla eklendi!')
+  }
+
+  const handleEventUpdated = () => {
+    fetchEvents()
+    toast.success('Etkinlik başarıyla güncellendi!')
+  }
+
+  const handleDeleteEvent = async () => {
+    if (!selectedEvent) return
+
+    try {
+      const response = await fetch(`/api/events/${selectedEvent.id}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        fetchEvents()
+        toast.success('Etkinlik başarıyla silindi!')
+      } else {
+        throw new Error('Etkinlik silinirken bir hata oluştu')
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      toast.error('Etkinlik silinemedi')
+    } finally {
+      setDeleteDialogOpen(false)
+      setSelectedEvent(null)
+    }
+  }
+
+  const filteredEvents = events.filter(event =>
+    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    event.location?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const upcomingEvents = filteredEvents.filter(event => 
+    new Date(event.startDate) > new Date() && event.status === 'PLANNED'
+  )
+
+  const pastEvents = filteredEvents.filter(event => 
+    new Date(event.startDate) <= new Date() || event.status === 'COMPLETED'
+  )
+
+  const currentEvents = filteredEvents.filter(event => 
+    event.status === 'ONGOING'
+  )
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
   }
 
   return (
@@ -132,6 +256,24 @@ export default function EventsPage() {
         open={eventFormOpen} 
         onOpenChange={setEventFormOpen}
         onSuccess={handleEventAdded}
+      />
+
+      <EventEditForm 
+        open={eventEditFormOpen} 
+        onOpenChange={setEventEditFormOpen}
+        event={selectedEvent}
+        onSuccess={handleEventUpdated}
+      />
+
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Etkinliği Sil"
+        description={`${selectedEvent?.title} etkinliğini silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
+        confirmText="Sil"
+        cancelText="İptal"
+        variant="destructive"
+        onConfirm={handleDeleteEvent}
       />
 
       {/* Stats Grid */}
@@ -177,6 +319,21 @@ export default function EventsPage() {
 
         {/* Upcoming Events */}
         <TabsContent value="upcoming" className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input 
+                placeholder="Etkinlik ara..." 
+                className="pl-9 w-64" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {upcomingEvents.length} etkinlik bulundu
+            </div>
+          </div>
+          
           <div className="grid gap-4">
             {upcomingEvents.map((event) => (
               <Card key={event.id}>
@@ -185,48 +342,89 @@ export default function EventsPage() {
                     <div className="space-y-3 flex-1">
                       <div className="flex items-center gap-3">
                         <h3 className="text-xl font-semibold">{event.title}</h3>
-                        <Badge variant={event.status === 'open' ? 'default' : 'secondary'}>
-                          {event.status === 'open' ? 'Kayıt Açık' : 'Dolmak Üzere'}
+                        <Badge variant={
+                          event.status === 'PLANNED' ? 'default' : 
+                          event.status === 'ONGOING' ? 'secondary' : 'outline'
+                        }>
+                          {event.status === 'PLANNED' ? 'Planlanan' : 
+                           event.status === 'ONGOING' ? 'Devam Eden' : event.status}
                         </Badge>
-                        <Badge variant="outline">{event.type}</Badge>
+                        <Badge variant="outline">
+                          {event.type === 'CONFERENCE' ? 'Konferans' :
+                           event.type === 'SEMINAR' ? 'Seminer' :
+                           event.type === 'WORKSHOP' ? 'Workshop' :
+                           event.type === 'NETWORKING' ? 'Networking' :
+                           event.type === 'TRAINING' ? 'Eğitim' :
+                           event.type === 'SOCIAL_RESPONSIBILITY' ? 'Sosyal Sorumluluk' :
+                           event.type === 'MEETING' ? 'Toplantı' : 'Diğer'}
+                        </Badge>
                       </div>
                       <div className="flex items-center gap-6 text-sm text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4" />
-                          <span>{event.date} - {event.time}</span>
+                          <span>{new Date(event.startDate).toLocaleDateString('tr-TR')} - {new Date(event.startDate).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          <span>{event.location}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4" />
-                          <span>{event.registered}/{event.capacity} kişi</span>
-                        </div>
+                        {event.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            <span>{event.location}</span>
+                          </div>
+                        )}
+                        {event.capacity && (
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            <span>Kapasite: {event.capacity}</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between text-sm">
-                          <span>Kayıt Doluluk Oranı</span>
-                          <span className="font-medium">
-                            {Math.round((event.registered / event.capacity) * 100)}%
-                          </span>
-                        </div>
-                        <div className="h-2 bg-muted rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${(event.registered / event.capacity) * 100}%` }}
-                          />
-                        </div>
-                      </div>
+                      {event.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {event.description}
+                        </p>
+                      )}
                     </div>
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm">Düzenle</Button>
-                      <Button variant="default" size="sm">Detaylar</Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedEvent(event)
+                          setEventEditFormOpen(true)
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedEvent(event)
+                          setDeleteDialogOpen(true)
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             ))}
+            
+            {upcomingEvents.length === 0 && (
+              <Card>
+                <CardContent className="p-12 text-center">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Yaklaşan etkinlik bulunmuyor</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Henüz planlanmış etkinlik bulunmuyor. Yeni bir etkinlik ekleyin.
+                  </p>
+                  <Button onClick={() => setEventFormOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Yeni Etkinlik Ekle
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 

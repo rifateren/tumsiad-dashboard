@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, Send, X, Sparkles, RefreshCw } from 'lucide-react'
+import { MessageSquare, Send, X, Sparkles, RefreshCw, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useToastHelpers } from '@/components/ui/toast'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -31,6 +32,7 @@ export function ChatWidget({ pageContext }: ChatWidgetProps) {
   const [input, setInput] = useState('')
   const [processing, setProcessing] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const toast = useToastHelpers()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -205,8 +207,10 @@ export function ChatWidget({ pageContext }: ChatWidgetProps) {
 
         if (updateSuccess) {
           response += `✅ ${parsed.stk} ${parsed.month} ayı etkinlik sayısı güncellendi!\n\n📊 Sayfayı yenileyin.`
+          toast.success(`${parsed.stk} etkinlik sayısı güncellendi!`)
         } else {
           response += `❌ Güncelleme başarısız: ${data.error}`
+          toast.error('Etkinlik sayısı güncellenemedi')
         }
 
       // Normal komut işleme - Sosyal medya
@@ -231,8 +235,10 @@ export function ChatWidget({ pageContext }: ChatWidgetProps) {
 
         if (updateSuccess) {
           response += `✅ ${parsed.stk} ${parsed.platform} takipçi sayısı ${parsed.value} olarak güncellendi!\n\n📊 Sayfayı yenileyin veya "Yenile" butonuna tıklayın.`
+          toast.success(`${parsed.stk} ${parsed.platform} güncellendi!`)
         } else {
           response += `❌ Güncelleme başarısız: ${data.error}`
+          toast.error('Sosyal medya güncellenemedi')
         }
 
       } else if (parsed.metric && parsed.value) {
@@ -255,8 +261,10 @@ export function ChatWidget({ pageContext }: ChatWidgetProps) {
 
         if (updateSuccess) {
           response += `✅ ${parsed.metric} skoru ${parsed.value} olarak güncellendi!`
+          toast.success(`${parsed.metric} skoru güncellendi!`)
         } else {
           response += `❌ Güncelleme başarısız: ${data.error}`
+          toast.error('Metrik güncellenemedi')
         }
 
       } else {
