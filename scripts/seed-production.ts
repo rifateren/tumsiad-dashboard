@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient({
-  datasourceUrl: process.env.DATABASE_URL
+  datasourceUrl: process.env.PRODUCTION_DATABASE_URL || process.env.DATABASE_URL
 })
 
 async function main() {

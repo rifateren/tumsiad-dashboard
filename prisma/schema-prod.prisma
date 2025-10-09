@@ -1,0 +1,223 @@
+// Production schema - PostgreSQL
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Kullanıcılar ve Authentication
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String?
+  role          String    @default("USER") // USER, ADMIN, SUPER_ADMIN
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  reports       Report[]
+}
+
+// Üyeler
+model Member {
+  id              String    @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String    @unique
+  phone           String?
+  company         String?
+  position        String?
+  sector          String?
+  address         String?
+  city            String
+  district        String?
+  birthDate       DateTime?
+  experience      Int?      // İş deneyimi (yıl)
+  status          String    @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED, RESIGNED
+  membershipDate  DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  participations  EventParticipant[]
+}
+
+// Etkinlikler
+model Event {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  type          String    // CONFERENCE, SEMINAR, WORKSHOP, NETWORKING, TRAINING, SOCIAL_RESPONSIBILITY, MEETING, OTHER
+  startDate     DateTime
+  endDate       DateTime?
+  location      String?
+  address       String?
+  city          String
+  capacity      Int?
+  cost          Float?
+  status        String    @default("PLANNED") // PLANNED, ONGOING, COMPLETED, CANCELLED
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  participants  EventParticipant[]
+  feedbacks     EventFeedback[]
+}
+
+// Etkinlik Katılımcıları (Many-to-Many)
+model EventParticipant {
+  id          String    @id @default(cuid())
+  memberId    String
+  eventId     String
+  status      String    @default("REGISTERED") // REGISTERED, ATTENDED, CANCELLED, NO_SHOW
+  registeredAt DateTime @default(now())
+  
+  member      Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  @@unique([memberId, eventId])
+}
+
+// Etkinlik Geribildirimleri
+model EventFeedback {
+  id          String    @id @default(cuid())
+  eventId     String
+  rating      Int       // 1-5
+  comment     String?
+  createdAt   DateTime  @default(now())
+  
+  event       Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+}
+
+// Rakip STK'lar
+model Competitor {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  shortName   String   @unique
+  website     String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  digitalMetrics    DigitalMetric[]
+  socialMediaStats  SocialMediaStat[]
+  eventCounts       CompetitorEventCount[]
+}
+
+// Rakip STK Aylık Etkinlik Sayıları
+model CompetitorEventCount {
+  id            String   @id @default(cuid())
+  competitorId  String
+  month         String   // "Ocak 2024", "Şubat 2024"
+  eventCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@unique([competitorId, month])
+}
+
+// Dijital Varlık Metrikleri
+model DigitalMetric {
+  id            String   @id @default(cuid())
+  competitorId  String
+  date          DateTime @default(now())
+  seoScore      Float?
+  pageSpeed     Float?
+  mobileScore   Float?
+  contentScore  Float?
+  overallScore  Float?
+  
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+}
+
+// Sosyal Medya İstatistikleri
+model SocialMediaStat {
+  id            String   @id @default(cuid())
+  competitorId  String
+  platform      String   // FACEBOOK, INSTAGRAM, TWITTER, LINKEDIN, YOUTUBE
+  followers     Int      @default(0)
+  engagement    Float?
+  posts         Int?
+  date          DateTime @default(now())
+  
+  competitor    Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+}
+
+// Stratejik Hedefler
+model Goal {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  category      String    // MEMBERSHIP, EVENTS, COMMUNICATION, DIGITAL, REGIONAL, FINANCIAL, OTHER
+  targetValue   Float?
+  currentValue  Float?
+  unit          String?
+  priority      String    @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  status        String    @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, CANCELLED, ON_HOLD
+  startDate     DateTime  @default(now())
+  endDate       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  kpis          KPI[]
+}
+
+// KPI'lar (Key Performance Indicators)
+model KPI {
+  id            String    @id @default(cuid())
+  goalId        String?
+  name          String
+  description   String?
+  targetValue   Float
+  currentValue  Float?
+  unit          String
+  frequency     String    // DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+  lastUpdated   DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  goal          Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
+}
+
+// Raporlar
+model Report {
+  id            String    @id @default(cuid())
+  title         String
+  type          String    // MONTHLY, QUARTERLY, YEARLY, CUSTOM
+  content       String    // JSON veya HTML
+  generatedBy   String
+  generatedAt   DateTime  @default(now())
+  period        String?   // "2024-Q1", "2024-01", "2024"
+  
+  user          User      @relation(fields: [generatedBy], references: [id], onDelete: Cascade)
+}
+
+// Aktivite Logu
+model Activity {
+  id            String    @id @default(cuid())
+  type          String    // MEMBER_ADDED, EVENT_CREATED, GOAL_UPDATED, etc.
+  description   String
+  userId        String?
+  metadata      String?   // JSON
+  createdAt     DateTime  @default(now())
+}
+
+// İletişim Kampanyaları
+model Campaign {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  type          String    // SOCIAL_MEDIA, EMAIL, PRESS_RELEASE, NEWSLETTER, EVENT_PROMOTION, AWARENESS, OTHER
+  startDate     DateTime
+  endDate       DateTime?
+  budget        Float?
+  reach         Int?      // Erişim sayısı
+  engagement    Float?    // Etkileşim oranı
+  status        String    @default("PLANNED") // PLANNED, ACTIVE, COMPLETED, CANCELLED
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
