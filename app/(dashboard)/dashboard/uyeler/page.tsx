@@ -134,21 +134,30 @@ export default function MembersPage() {
         fetch('/api/analytics/member-stats')
       ])
 
+      console.log('Members API response:', membersResponse.status)
+      console.log('Stats API response:', statsResponse.status)
+
       if (membersResponse.ok && statsResponse.ok) {
         const [membersData, statsData] = await Promise.all([
           membersResponse.json(),
           statsResponse.json()
         ])
 
+        console.log('Members data:', membersData)
+        console.log('Stats data:', statsData)
+
         setMembers(membersData.members || [])
         setMemberStats({
-          total: statsData.totalMembers,
-          active: statsData.activeMembers,
-          inactive: statsData.inactiveMembers,
+          total: statsData.totalMembers || 0,
+          active: statsData.activeMembers || 0,
+          inactive: statsData.inactiveMembers || 0,
           newThisMonth: statsData.monthlyGrowth?.slice(-1)[0]?.count || 0,
-          growthRate: 12.5, // This would be calculated from historical data
+          growthRate: 12.5,
           activeRate: statsData.totalMembers > 0 ? Math.round((statsData.activeMembers / statsData.totalMembers) * 100) : 0,
         })
+      } else {
+        console.error('API error - Members:', membersResponse.status, 'Stats:', statsResponse.status)
+        toast.error('API hatası: Veriler yüklenemedi')
       }
     } catch (error) {
       console.error('Error fetching members:', error)
@@ -417,6 +426,24 @@ export default function MembersPage() {
               ))}
             </TableBody>
           </Table>
+          
+          {filteredMembers.length === 0 && (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">
+                {searchTerm ? 'Arama sonucu bulunamadı' : 'Henüz üye bulunmuyor'}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {searchTerm ? 'Farklı bir arama terimi deneyin' : 'İlk üyenizi eklemek için yukarıdaki butonu kullanın'}
+              </p>
+              {!searchTerm && (
+                <Button onClick={() => setMemberFormOpen(true)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  İlk Üyeyi Ekle
+                </Button>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
