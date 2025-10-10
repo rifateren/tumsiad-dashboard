@@ -15,6 +15,7 @@ import {
 import { memberSchema, validateFormData } from '@/lib/validation'
 import { useToastHelpers } from '@/components/ui/toast'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { SECTORS, CITIES, DISTRICTS, MEMBER_STATUSES } from '@/lib/constants'
 
 interface MemberFormProps {
   open: boolean
@@ -22,38 +23,7 @@ interface MemberFormProps {
   onSuccess?: () => void
 }
 
-const sectors = [
-  'Tekstil',
-  'Gıda',
-  'Teknoloji',
-  'İnşaat',
-  'Turizm',
-  'Eğitim',
-  'Sağlık',
-  'Diğer',
-]
-
-const districts = [
-  'Merkez',
-  'Pamukkale',
-  'Merkezefendi',
-  'Honaz',
-  'Çivril',
-  'Acıpayam',
-  'Çal',
-  'Baklan',
-  'Bekilli',
-  'Beyağaç',
-  'Bozkurt',
-  'Buldan',
-  'Çameli',
-  'Çardak',
-  'Güney',
-  'Kale',
-  'Sarayköy',
-  'Serinhisar',
-  'Tavas',
-]
+// Sektörler, şehirler ve durumlar constants'dan alınıyor
 
 export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
   const [loading, setLoading] = useState(false)
@@ -244,7 +214,7 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
                 }
               >
                 <option value="">Seçiniz</option>
-                {sectors.map((sector) => (
+                {SECTORS.map((sector) => (
                   <option key={sector} value={sector}>
                     {sector}
                   </option>
@@ -262,7 +232,7 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
                   setFormData({ ...formData, district: e.target.value })
                 }
               >
-                {districts.map((district) => (
+                {DISTRICTS.map((district) => (
                   <option key={district} value={district}>
                     {district}
                   </option>
