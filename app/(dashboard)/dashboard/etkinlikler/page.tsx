@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { StatCard } from '@/components/dashboard/stat-card'
 import { BarChart } from '@/components/charts/bar-chart'
 import { LineChart } from '@/components/charts/line-chart'
-import { Calendar, Users, TrendingUp, Award, Clock, MapPin, Plus, Edit, Trash2, Search } from 'lucide-react'
+import { Calendar, Users, TrendingUp, Award, Clock, MapPin, Plus, Edit, Trash2, Search, Download, RefreshCw } from 'lucide-react'
 import { EventForm } from '@/components/forms/event-form'
 import { EventEditForm } from '@/components/forms/event-edit-form'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
@@ -246,10 +246,27 @@ export default function EventsPage() {
             Etkinlik planlama, takip ve performans analizi
           </p>
         </div>
-        <Button onClick={() => setEventFormOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Yeni Etkinlik
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => window.open('/api/export/events-excel', '_blank')}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Excel İndir
+          </Button>
+          <Button
+            variant="outline"
+            onClick={fetchEvents}
+            disabled={loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Yenile
+          </Button>
+          <Button onClick={() => setEventFormOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Yeni Etkinlik
+          </Button>
+        </div>
       </div>
 
       <EventForm 

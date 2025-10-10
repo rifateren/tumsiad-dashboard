@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { LineChart } from '@/components/charts/line-chart'
 import { BarChart } from '@/components/charts/bar-chart'
 import { StatCard } from '@/components/dashboard/stat-card'
-import { Users, TrendingUp, UserPlus, Activity, Search, Filter, Edit, Trash2, Eye } from 'lucide-react'
+import { Users, TrendingUp, UserPlus, Activity, Search, Filter, Edit, Trash2, Eye, Download, RefreshCw } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { MemberForm } from '@/components/forms/member-form'
 import { MemberEditForm } from '@/components/forms/member-edit-form'
@@ -229,10 +229,27 @@ export default function MembersPage() {
             Üye veritabanı ve analitik takip sistemi
           </p>
         </div>
-        <Button onClick={() => setMemberFormOpen(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Yeni Üye Ekle
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => window.open('/api/export/members-excel', '_blank')}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Excel İndir
+          </Button>
+          <Button
+            variant="outline"
+            onClick={fetchMembers}
+            disabled={loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Yenile
+          </Button>
+          <Button onClick={() => setMemberFormOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Yeni Üye Ekle
+          </Button>
+        </div>
       </div>
 
       <MemberForm 
