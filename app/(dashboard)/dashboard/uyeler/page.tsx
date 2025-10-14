@@ -118,6 +118,8 @@ export default function MembersPage() {
     growthRate: 0,
     activeRate: 0,
   })
+  const [sectorData, setSectorData] = useState<Array<{ sector: string; count: number; percentage: number }>>([])
+  const [monthlyGrowth, setMonthlyGrowth] = useState<Array<{ month: string; toplam: number; aktif: number; yeni: number }>>([])
   const [loading, setLoading] = useState(true)
   const [memberFormOpen, setMemberFormOpen] = useState(false)
   const [memberEditFormOpen, setMemberEditFormOpen] = useState(false)
@@ -146,7 +148,9 @@ export default function MembersPage() {
         console.log('Members data:', membersData)
         console.log('Stats data:', statsData)
 
-        setMembers(membersData.members || [])
+        const membersList = membersData.members || []
+        setMembers(membersList)
+        
         setMemberStats({
           total: statsData.totalMembers || 0,
           active: statsData.activeMembers || 0,
@@ -155,6 +159,39 @@ export default function MembersPage() {
           growthRate: 12.5,
           activeRate: statsData.totalMembers > 0 ? Math.round((statsData.activeMembers / statsData.totalMembers) * 100) : 0,
         })
+
+        // Sektör dağılımını hesapla
+        const sectorCounts: { [key: string]: number } = {}
+        membersList.forEach((member: Member) => {
+          const sector = member.sector || 'Diğer'
+          sectorCounts[sector] = (sectorCounts[sector] || 0) + 1
+        })
+
+        const totalMembers = membersList.length
+        const sectorArray = Object.entries(sectorCounts)
+          .map(([sector, count]) => ({
+            sector,
+            count,
+            percentage: totalMembers > 0 ? Math.round((count / totalMembers) * 100) : 0
+          }))
+          .sort((a, b) => b.count - a.count)
+
+        setSectorData(sectorArray)
+
+        // Aylık büyüme verilerini hesapla (statsData'dan)
+        if (statsData.monthlyGrowth && statsData.monthlyGrowth.length > 0) {
+          const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık']
+          const growthData = statsData.monthlyGrowth.slice(-6).map((item: any, index: number) => {
+            const monthIndex = new Date(item.month).getMonth()
+            return {
+              month: months[monthIndex] || item.month,
+              toplam: item.count || 0,
+              aktif: Math.round((item.count || 0) * 0.85), // %85 aktif varsayımı
+              yeni: index === statsData.monthlyGrowth.length - 1 ? (statsData.monthlyGrowth[index]?.count || 0) - (statsData.monthlyGrowth[index - 1]?.count || 0) : 0
+            }
+          })
+          setMonthlyGrowth(growthData)
+        }
       } else {
         console.error('API error - Members:', membersResponse.status, 'Stats:', statsResponse.status)
         toast.error('API hatası: Veriler yüklenemedi')
@@ -314,7 +351,7 @@ export default function MembersPage() {
         <LineChart
           title="Üye Büyüme Trendi"
           description="Son 6 aylık üye artışı ve aktivite"
-          data={memberGrowth}
+          data={monthlyGrowth.length > 0 ? monthlyGrowth : memberGrowth}
           dataKey="toplam"
           xAxisKey="month"
           lines={[
@@ -326,7 +363,7 @@ export default function MembersPage() {
         <BarChart
           title="Sektör Dağılımı"
           description="Üyelerin sektörel analizi"
-          data={sectorDistribution}
+          data={sectorData.length > 0 ? sectorData : sectorDistribution}
           dataKey="count"
           xAxisKey="sector"
         />
@@ -340,7 +377,7 @@ export default function MembersPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {sectorDistribution.map((sector) => (
+            {(sectorData.length > 0 ? sectorData : sectorDistribution).map((sector) => (
               <div key={sector.sector} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">{sector.sector}</span>

@@ -31,11 +31,12 @@ model Member {
   company         String?
   position        String?
   sector          String?
-  address         String?
+  address         String?   // Tam adres
   city            String
   district        String?
   birthDate       DateTime?
   experience      Int?      // İş deneyimi (yıl)
+  notes           String?   // Notlar
   status          String    @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED, RESIGNED
   membershipDate  DateTime  @default(now())
   createdAt       DateTime  @default(now())

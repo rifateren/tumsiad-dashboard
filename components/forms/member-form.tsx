@@ -39,6 +39,7 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
     sector: '',
     district: 'Merkez',
     address: '',
+    notes: '',
     experience: '',
   })
 
@@ -90,6 +91,7 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
         sector: '',
         district: 'Merkez',
         address: '',
+        notes: '',
         experience: '',
       })
 
@@ -241,18 +243,33 @@ export function MemberForm({ open, onOpenChange, onSuccess }: MemberFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="address">Adres</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Adres</Label>
+            <textarea
+              id="address"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              placeholder="Tam adres..."
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+            />
+          </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notlar</Label>
+            <textarea
+              id="notes"
+              className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              placeholder="Üye hakkında notlar..."
+              value={formData.notes}
+              onChange={(e) =>
+                setFormData({ ...formData, notes: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="experience">Deneyim (Yıl)</Label>
               <Input
