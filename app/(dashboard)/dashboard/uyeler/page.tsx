@@ -211,6 +211,11 @@ export default function MembersPage() {
     member.sector?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  console.log('Members state:', members.length)
+  console.log('Filtered members:', filteredMembers.length)
+  console.log('Search term:', searchTerm)
+  console.log('Loading:', loading)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
