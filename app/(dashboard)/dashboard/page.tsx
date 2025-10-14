@@ -11,46 +11,18 @@ import { RefreshButton } from '@/components/ui/refresh-button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { useToastHelpers } from '@/components/ui/toast'
 
-// Mock data - gerçek verilerle değiştirilecek
-const memberGrowthData = [
-  { month: 'Ocak', uye: 45 },
-  { month: 'Şubat', uye: 52 },
-  { month: 'Mart', uye: 58 },
-  { month: 'Nisan', uye: 65 },
-  { month: 'Mayıs', uye: 72 },
-  { month: 'Haziran', uye: 78 },
+// Fallback data - API'den veri gelmezse kullanılacak
+const fallbackMemberGrowth = [
+  { month: 'Oca', uye: 0 },
+  { month: 'Şub', uye: 0 },
+  { month: 'Mar', uye: 0 },
+  { month: 'Nis', uye: 0 },
+  { month: 'May', uye: 0 },
+  { month: 'Haz', uye: 0 },
 ]
 
-const sectorData = [
-  { sector: 'Tekstil', count: 25 },
-  { sector: 'Gıda', count: 18 },
-  { sector: 'Teknoloji', count: 15 },
-  { sector: 'İnşaat', count: 12 },
-  { sector: 'Turizm', count: 8 },
-]
-
-const recentEvents = [
-  {
-    id: 1,
-    title: 'İhracat Stratejileri Semineri',
-    date: '15 Ekim 2024',
-    attendees: 45,
-    status: 'completed'
-  },
-  {
-    id: 2,
-    title: 'Networking Kahvaltısı',
-    date: '20 Ekim 2024',
-    attendees: 32,
-    status: 'completed'
-  },
-  {
-    id: 3,
-    title: 'Dijital Dönüşüm Workshop',
-    date: '25 Ekim 2024',
-    attendees: 28,
-    status: 'upcoming'
-  },
+const fallbackSectorData = [
+  { sector: 'Veri Yükleniyor...', count: 0 },
 ]
 
 export default function DashboardPage() {
@@ -91,6 +63,11 @@ export default function DashboardPage() {
       const eventStatsData = eventStatsResponse?.ok ? await eventStatsResponse.json().catch(() => ({})) : {}
       const eventsData = eventsResponse?.ok ? await eventsResponse.json().catch(() => ({})) : {}
 
+      console.log('📊 Dashboard Data:')
+      console.log('Member Stats:', memberStatsData)
+      console.log('Sector Distribution:', memberStatsData?.sectorDistribution)
+      console.log('Monthly Growth:', memberStatsData?.monthlyGrowth)
+
       setStats({
         totalMembers: Number(statsData?.totalMembers) || 0,
         activeMembers: Number(statsData?.activeMembers) || 0,
@@ -102,21 +79,42 @@ export default function DashboardPage() {
 
       // Transform data for charts with extra safety
       try {
-        setMemberGrowthData(memberStatsData?.monthlyGrowth?.map((item: any) => ({
-          month: new Date(item.month).toLocaleDateString('tr-TR', { month: 'short' }),
-          uye: item.count
-        })) || [])
+        if (memberStatsData?.monthlyGrowth && Array.isArray(memberStatsData.monthlyGrowth)) {
+          const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara']
+          const growthData = memberStatsData.monthlyGrowth
+            .slice(-6) // Son 6 ay
+            .map((item: any) => {
+              const monthIndex = parseInt(item.month.split('-')[1]) - 1
+              return {
+                month: months[monthIndex] || item.month,
+                uye: item.count || 0
+              }
+            })
+          setMemberGrowthData(growthData.length > 0 ? growthData : fallbackMemberGrowth)
+        } else {
+          setMemberGrowthData(fallbackMemberGrowth)
+        }
       } catch (e) {
-        setMemberGrowthData([])
+        console.error('Member growth data error:', e)
+        setMemberGrowthData(fallbackMemberGrowth)
       }
 
       try {
-        setSectorData(memberStatsData?.sectorDistribution?.map((item: any) => ({
-          sector: item.sector,
-          count: item.count
-        })) || [])
+        if (memberStatsData?.sectorDistribution && Array.isArray(memberStatsData.sectorDistribution)) {
+          const sectors = memberStatsData.sectorDistribution
+            .filter((item: any) => item.sector && item.count > 0)
+            .slice(0, 8) // En çok 8 sektör
+            .map((item: any) => ({
+              sector: item.sector || 'Diğer',
+              count: item.count || 0
+            }))
+          setSectorData(sectors.length > 0 ? sectors : fallbackSectorData)
+        } else {
+          setSectorData(fallbackSectorData)
+        }
       } catch (e) {
-        setSectorData([])
+        console.error('Sector data error:', e)
+        setSectorData(fallbackSectorData)
       }
 
       try {
