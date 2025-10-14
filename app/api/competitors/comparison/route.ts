@@ -12,14 +12,10 @@ export async function GET() {
           take: 1,
         },
         socialMediaStats: {
-          where: {
-            date: {
-              gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // Son 30 gün
-            },
-          },
           orderBy: {
             date: 'desc',
           },
+          take: 10, // Son 10 kayıt
         },
       },
     })
@@ -38,13 +34,11 @@ export async function GET() {
         ? Number((socialStats.reduce((sum, stat) => sum + stat.engagement, 0) / socialStats.length).toFixed(2))
         : 0
 
-      // Platform bazlı veriler
+      // Platform bazlı veriler - en son verileri al
       const platformData = {
-        twitter: socialStats.find(s => s.platform === 'TWITTER'),
-        linkedin: socialStats.find(s => s.platform === 'LINKEDIN'),
-        instagram: socialStats.find(s => s.platform === 'INSTAGRAM'),
-        facebook: socialStats.find(s => s.platform === 'FACEBOOK'),
-        youtube: socialStats.find(s => s.platform === 'YOUTUBE'),
+        twitter: socialStats.find(s => s.platform === 'TWITTER') || { followers: 0, posts: 0, engagement: 0 },
+        instagram: socialStats.find(s => s.platform === 'INSTAGRAM') || { followers: 0, posts: 0, engagement: 0 },
+        facebook: socialStats.find(s => s.platform === 'FACEBOOK') || { followers: 0, posts: 0, engagement: 0 },
       }
 
       return {
@@ -65,7 +59,9 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json(comparison)
+    return NextResponse.json({
+      competitors: comparison
+    })
   } catch (error) {
     console.error('Error fetching competitor comparison:', error)
     return NextResponse.json(

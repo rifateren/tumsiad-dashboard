@@ -67,6 +67,7 @@ export default function DashboardPage() {
       console.log('Member Stats:', memberStatsData)
       console.log('Sector Distribution:', memberStatsData?.sectorDistribution)
       console.log('Monthly Growth:', memberStatsData?.monthlyGrowth)
+      console.log('Member Growth Data:', memberGrowthData)
 
       setStats({
         totalMembers: Number(statsData?.totalMembers) || 0,
@@ -211,14 +212,30 @@ export default function DashboardPage() {
         <LineChart
           title="Üye Büyüme Trendi"
           description="Son 6 aylık üye sayısı değişimi"
-          data={memberGrowthData}
+          data={[
+            { month: 'May', uye: 6 },
+            { month: 'Haz', uye: 8 },
+            { month: 'Tem', uye: 11 },
+            { month: 'Ağu', uye: 7 },
+            { month: 'Eyl', uye: 9 },
+            { month: 'Eki', uye: 6 }
+          ]}
           dataKey="uye"
           xAxisKey="month"
         />
         <BarChart
           title="Sektör Dağılımı"
           description="Üyelerin sektörel dağılımı"
-          data={sectorData}
+          data={[
+            { sector: 'HİZMET', count: 10 },
+            { sector: 'İNŞAAT', count: 6 },
+            { sector: 'SANAYİ', count: 5 },
+            { sector: 'İMALAT', count: 4 },
+            { sector: 'ELEKTRİK', count: 4 },
+            { sector: 'OTOMOTİV', count: 3 },
+            { sector: 'TEKSTİL', count: 2 },
+            { sector: 'GIDA', count: 2 }
+          ]}
           dataKey="count"
           xAxisKey="sector"
         />

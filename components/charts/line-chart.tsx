@@ -20,7 +20,7 @@ export function LineChart({ title, description, data, dataKey, xAxisKey, lines }
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+        <ResponsiveContainer width="100%" height={350}>
           <RechartsLineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
             <XAxis 
@@ -31,6 +31,7 @@ export function LineChart({ title, description, data, dataKey, xAxisKey, lines }
             <YAxis 
               className="text-xs"
               stroke="hsl(var(--muted-foreground))"
+              domain={['dataMin - 1', 'dataMax + 1']}
             />
             <Tooltip 
               contentStyle={{
@@ -59,8 +60,10 @@ export function LineChart({ title, description, data, dataKey, xAxisKey, lines }
               <Line
                 type="monotone"
                 dataKey={dataKey}
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
+                stroke="#3b82f6"
+                strokeWidth={3}
+                dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2 }}
               />
             )}
           </RechartsLineChart>

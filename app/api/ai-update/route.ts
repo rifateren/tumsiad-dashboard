@@ -61,10 +61,6 @@ export async function POST(request: Request) {
           followers: value,
           posts: existing?.posts || 30,
           engagement: existing?.engagement || 3.5,
-          reach: Math.round(value * 0.1),
-          likes: Math.round(value * 0.05),
-          comments: Math.round(value * 0.01),
-          shares: Math.round(value * 0.005),
         },
       })
 

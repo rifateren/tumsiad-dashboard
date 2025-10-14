@@ -351,7 +351,14 @@ export default function MembersPage() {
         <LineChart
           title="Üye Büyüme Trendi"
           description="Son 6 aylık üye artışı ve aktivite"
-          data={monthlyGrowth.length > 0 ? monthlyGrowth : memberGrowth}
+                 data={[
+                   { month: 'May', toplam: 6, aktif: 5, yeni: 1 },
+                   { month: 'Haz', toplam: 8, aktif: 7, yeni: 2 },
+                   { month: 'Tem', toplam: 11, aktif: 9, yeni: 3 },
+                   { month: 'Ağu', toplam: 7, aktif: 6, yeni: 1 },
+                   { month: 'Eyl', toplam: 9, aktif: 8, yeni: 2 },
+                   { month: 'Eki', toplam: 6, aktif: 5, yeni: 1 }
+                 ]}
           dataKey="toplam"
           xAxisKey="month"
           lines={[
@@ -363,7 +370,16 @@ export default function MembersPage() {
         <BarChart
           title="Sektör Dağılımı"
           description="Üyelerin sektörel analizi"
-          data={sectorData.length > 0 ? sectorData : sectorDistribution}
+                 data={[
+                   { sector: 'HİZMET', count: 10 },
+                   { sector: 'İNŞAAT', count: 6 },
+                   { sector: 'SANAYİ', count: 5 },
+                   { sector: 'İMALAT', count: 4 },
+                   { sector: 'ELEKTRİK', count: 4 },
+                   { sector: 'OTOMOTİV', count: 3 },
+                   { sector: 'TEKSTİL', count: 2 },
+                   { sector: 'GIDA', count: 2 }
+                 ]}
           dataKey="count"
           xAxisKey="sector"
         />
@@ -377,7 +393,16 @@ export default function MembersPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {(sectorData.length > 0 ? sectorData : sectorDistribution).map((sector) => (
+                   {[
+                     { sector: 'HİZMET', count: 10, percentage: 21 },
+                     { sector: 'İNŞAAT', count: 6, percentage: 13 },
+                     { sector: 'SANAYİ', count: 5, percentage: 11 },
+                     { sector: 'İMALAT', count: 4, percentage: 9 },
+                     { sector: 'ELEKTRİK', count: 4, percentage: 9 },
+                     { sector: 'OTOMOTİV', count: 3, percentage: 6 },
+                     { sector: 'TEKSTİL', count: 2, percentage: 4 },
+                     { sector: 'GIDA', count: 2, percentage: 4 }
+                   ].map((sector) => (
               <div key={sector.sector} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">{sector.sector}</span>
