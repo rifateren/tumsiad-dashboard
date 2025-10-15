@@ -1,9 +1,11 @@
 'use client'
 
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { 
   Building2, 
   Users, 
@@ -15,7 +17,10 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Calendar,
+  Award,
+  TrendingUp
 } from 'lucide-react'
 
 // TÜMSİAD Görev Tanımları ve Organizasyon Yapısı
@@ -247,6 +252,8 @@ const organizationalUnits = [
 ]
 
 export default function BirimlerPage() {
+  const [selectedUnit, setSelectedUnit] = useState<any>(null)
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
@@ -429,11 +436,132 @@ export default function BirimlerPage() {
 
               <Separator />
 
-              {/* Action Button */}
-              <Button variant="outline" className="w-full" size="sm">
-                <FileText className="h-4 w-4 mr-2" />
-                Detaylı Görev Tanımı
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1" 
+                      size="sm"
+                      onClick={() => setSelectedUnit(unit)}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Detayları Gör
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Building2 className="h-5 w-5 text-primary" />
+                        {unit.name}
+                      </DialogTitle>
+                      <DialogDescription>
+                        {unit.description}
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-6">
+                      {/* Status and Priority */}
+                      <div className="flex gap-4">
+                        <Badge className={getStatusColor(unit.status)}>
+                          {getStatusText(unit.status)}
+                        </Badge>
+                        <Badge className={getPriorityColor(unit.priority)}>
+                          {getPriorityText(unit.priority)}
+                        </Badge>
+                      </div>
+
+                      {/* Head and Members */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Award className="h-5 w-5" />
+                              Başkan
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-lg font-medium">{unit.head}</p>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              <Users className="h-5 w-5" />
+                              Üyeler ({unit.members.length})
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-1">
+                              {unit.members.map((member: string, index: number) => (
+                                <div key={index} className="text-sm text-muted-foreground">
+                                  • {member}
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Responsibilities */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Target className="h-5 w-5" />
+                            Görev ve Sorumluluklar ({unit.responsibilities.length})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            {unit.responsibilities.map((responsibility: string, index: number) => (
+                              <div key={index} className="flex items-start gap-2 p-3 bg-muted rounded-lg">
+                                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm">{responsibility}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      {/* Additional Info */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Info className="h-5 w-5" />
+                            Ek Bilgiler
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid gap-4 md:grid-cols-3">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Toplantı Sıklığı:</span>
+                              <span className="text-sm">Aylık</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Performans:</span>
+                              <Badge variant="outline" className="text-green-600">Yüksek</Badge>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium">Son Güncelleme:</span>
+                              <span className="text-sm">Bu ay</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                <Button variant="outline" className="flex-1" size="sm">
+                  <Users className="h-4 w-4 mr-2" />
+                  Üyeler
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
