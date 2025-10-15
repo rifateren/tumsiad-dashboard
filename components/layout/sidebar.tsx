@@ -11,6 +11,7 @@ import {
   Calendar, 
   MessageSquare, 
   MapPin, 
+  Building2,
   Target,
   FileText,
   Settings
@@ -51,6 +52,11 @@ const navigation = [
     name: 'Bölgesel Etki',
     href: '/dashboard/bolgesel',
     icon: MapPin,
+  },
+  {
+    name: 'Birimler',
+    href: '/dashboard/birimler',
+    icon: Building2,
   },
   {
     name: 'Hedefler & KPI',
