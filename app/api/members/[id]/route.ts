@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const member = await prisma.member.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         participations: {
           include: {
@@ -38,7 +38,7 @@ export async function PUT(
     const body = await request.json()
     
     const member = await prisma.member.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: body
     })
 
@@ -56,7 +56,7 @@ export async function DELETE(
 ) {
   try {
     await prisma.member.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     return NextResponse.json({ message: 'Üye silindi' })

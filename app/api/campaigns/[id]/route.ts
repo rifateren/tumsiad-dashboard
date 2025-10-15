@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const campaign = await prisma.campaign.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!campaign) {
@@ -29,7 +29,7 @@ export async function PUT(
     const body = await request.json()
     
     const campaign = await prisma.campaign.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: body
     })
 
@@ -46,7 +46,7 @@ export async function DELETE(
 ) {
   try {
     await prisma.campaign.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     return NextResponse.json({ message: 'Kampanya silindi' })

@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const goal = await prisma.goal.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: { kpis: true }
     })
 
@@ -30,7 +30,7 @@ export async function PUT(
     const body = await request.json()
     
     const goal = await prisma.goal.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: body
     })
 
@@ -47,7 +47,7 @@ export async function DELETE(
 ) {
   try {
     await prisma.goal.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     return NextResponse.json({ message: 'Hedef silindi' })

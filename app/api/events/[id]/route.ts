@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const event = await prisma.event.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         participants: {
           include: {
@@ -39,7 +39,7 @@ export async function PUT(
     const body = await request.json()
     
     const event = await prisma.event.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: body
     })
 
@@ -57,7 +57,7 @@ export async function DELETE(
 ) {
   try {
     await prisma.event.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     return NextResponse.json({ message: 'Etkinlik silindi' })
