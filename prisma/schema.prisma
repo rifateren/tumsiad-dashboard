@@ -8,6 +8,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  RESIGNED
+}
+
 // Kullanıcılar ve Authentication
 model User {
   id            String    @id @default(cuid())
@@ -37,7 +44,7 @@ model Member {
   birthDate       DateTime?
   experience      Int?      // İş deneyimi (yıl)
   notes           String?   // Notlar
-  status          String    @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED, RESIGNED
+  status          MemberStatus @default(ACTIVE)
   membershipDate  DateTime  @default(now())
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
