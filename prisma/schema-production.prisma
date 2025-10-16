@@ -1,6 +1,4 @@
-// Production için PostgreSQL schema
-// Vercel deploy sırasında bu kullanılacak
-
+// Production schema - PostgreSQL
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,8 +8,199 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Tüm model'ler aynı (schema.prisma ile aynı)
-// Sadece provider farklı
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  RESIGNED
+}
 
-// NOT: Deployment'ta bu dosyayı kullanmak için:
-// vercel.json'da build command'de belirtin
+// Kullanıcılar ve Authentication
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Üyeler
+model Member {
+  id              String       @id @default(cuid())
+  firstName       String
+  lastName        String
+  email           String       @unique
+  phone           String?
+  company         String?
+  position        String?
+  sector          String?
+  address         String?      // Tam adres
+  city            String
+  district        String?
+  birthDate       DateTime?
+  experience      Int?         // İş deneyimi (yıl)
+  notes           String?      // Notlar
+  status          MemberStatus @default(ACTIVE)
+  membershipDate  DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  
+  participations  EventParticipant[]
+}
+
+// Etkinlikler
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  location    String?
+  type        String    @default("MEETING") // MEETING, SEMINAR, CONFERENCE, SOCIAL
+  status      String    @default("PLANNED") // PLANNED, ONGOING, COMPLETED, CANCELLED
+  capacity    Int?
+  registered  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  participations EventParticipant[]
+}
+
+// Etkinlik Katılımları
+model EventParticipant {
+  id        String   @id @default(cuid())
+  memberId  String
+  eventId   String
+  status    String   @default("REGISTERED") // REGISTERED, ATTENDED, CANCELLED
+  createdAt DateTime @default(now())
+  
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  event  Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  @@unique([memberId, eventId])
+}
+
+// Rakip Kuruluşlar
+model Competitor {
+  id          String    @id @default(cuid())
+  name        String
+  shortName   String    @unique
+  website     String?
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  digitalMetrics   DigitalMetric[]
+  socialMediaStats SocialMediaStat[]
+  events           CompetitorEventCount[]
+}
+
+// Dijital Metrikler
+model DigitalMetric {
+  id            String    @id @default(cuid())
+  competitorId  String
+  overallScore  Float
+  seoScore      Float
+  pageSpeed     Float
+  mobileScore   Float
+  contentScore  Float
+  date          DateTime  @default(now())
+  
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+}
+
+// Sosyal Medya İstatistikleri
+model SocialMediaStat {
+  id           String    @id @default(cuid())
+  competitorId String
+  platform     String    // TWITTER, INSTAGRAM, FACEBOOK, YOUTUBE
+  followers    Int
+  posts        Int
+  engagement   Float
+  date         DateTime  @default(now())
+  
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+}
+
+// Hedefler
+model Goal {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  category    String    // MEMBER_GROWTH, EVENT_ORGANIZATION, DIGITAL_PRESENCE
+  targetValue Int
+  currentValue Int      @default(0)
+  deadline    DateTime?
+  status      String    @default("ACTIVE") // ACTIVE, COMPLETED, PAUSED, CANCELLED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// KPI'lar
+model KPI {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  category    String    // MEMBER, EVENT, DIGITAL, FINANCIAL
+  value       Float
+  target      Float?
+  unit        String?   // %, sayı, TL, etc.
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+}
+
+// Raporlar
+model Report {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String    // MONTHLY, QUARTERLY, ANNUAL, AD_HOC
+  content     String?   // JSON formatında rapor içeriği
+  generatedBy String?
+  createdAt   DateTime  @default(now())
+}
+
+// Faaliyetler
+model Activity {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String    // MEETING, EMAIL, CALL, VISIT
+  date        DateTime  @default(now())
+  duration    Int?      // dakika cinsinden
+  participants String?  // JSON array olarak katılımcılar
+  notes       String?
+  createdAt   DateTime  @default(now())
+}
+
+// Kampanyalar
+model Campaign {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        String    // EMAIL, SOCIAL_MEDIA, EVENT, MEMBERSHIP
+  status      String    @default("PLANNED") // PLANNED, ACTIVE, COMPLETED, PAUSED
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  targetAudience String?
+  metrics     String?   // JSON formatında metrikler
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Rakip Etkinlik Sayıları
+model CompetitorEventCount {
+  id           String    @id @default(cuid())
+  competitorId String
+  month        String    // YYYY-MM formatında
+  eventCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  
+  @@unique([competitorId, month])
+}
